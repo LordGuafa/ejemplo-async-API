@@ -1,0 +1,70 @@
+asyncapi: 3.0.0
+
+info:
+  title: Greeting Service
+  version: 1.0.0
+  description: Servicio mínimo que publica y recibe saludos sobre MQTT.
+
+servers:
+  mosquitto:
+    host: localhost:1883
+    protocol: mqtt
+    description: Broker Mosquitto local
+
+channels:
+  greetings:
+    address: greetings/hello
+    description: Canal donde se publican los saludos.
+    messages:
+      greeting:
+        $ref: '#/components/messages/Greeting'
+
+operations:
+  sendGreeting:
+    action: send
+    channel:
+      $ref: '#/channels/greetings'
+    summary: Publica un saludo.
+    messages:
+      - $ref: '#/channels/greetings/messages/greeting'
+
+  receiveGreeting:
+    action: receive
+    channel:
+      $ref: '#/channels/greetings'
+    summary: Recibe saludos.
+    messages:
+      - $ref: '#/channels/greetings/messages/greeting'
+
+components:
+  messages:
+    Greeting:
+      name: Greeting
+      title: Mensaje de saludo
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/GreetingPayload'
+      examples:
+        - payload:
+            name: Ana
+            message: ¡Hola mundo!
+            sentAt: '2026-10-19T12:00:00Z'
+
+  schemas:
+    GreetingPayload:
+      type: object
+      additionalProperties: false
+      required: [name, message, sentAt]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          description: Quién envía el saludo.
+        message:
+          type: string
+          minLength: 1
+          description: Texto del saludo.
+        sentAt:
+          type: string
+          format: date-time
+          description: Fecha de envío en ISO 8601.

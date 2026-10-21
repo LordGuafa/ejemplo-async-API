@@ -1,0 +1,17 @@
+node_modules
+dist
+docs
+coverage
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.vscode
+test
+*.log
+README.md
+Dockerfile
+.dockerignore
+compose.yaml
+mosquitto

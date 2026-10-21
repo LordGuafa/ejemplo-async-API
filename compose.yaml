@@ -1,0 +1,57 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    ports:
+      # El puerto de host es configurable para no chocar con otras instancias
+      # (los e2e eligen un puerto libre con MQTT_HOST_PORT).
+      - "${MQTT_HOST_PORT:-1883}:1883"
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    healthcheck:
+      # Se usa `sh -c` para que el shell del contenedor expanda $SYS.
+      # En Compose `$$` se traduce a un `$` literal que el shell ya sí expande.
+      test:
+        - CMD-SHELL
+        - mosquitto_sub -t '$$SYS/broker/uptime' -C 1 -W 5
+      interval: 5s
+      timeout: 6s
+      retries: 12
+      start_period: 5s
+
+  subscriber:
+    image: ejemplo-async-api-app:${IMAGE_TAG:-dev}
+    build:
+      context: .
+    # init: true añade docker-init como PID 1 para que las señales (SIGTERM)
+    # lleguen al proceso de Node y el cierre sea ordenado.
+    init: true
+    restart: unless-stopped
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    environment:
+      # En producción este servicio exigiría mqtts://; aquí es solo desarrollo.
+      MQTT_URL: mqtt://mosquitto:1883
+      MQTT_QOS: ${MQTT_QOS:-1}
+      MQTT_CLIENT_ID_PREFIX: ${MQTT_CLIENT_ID_PREFIX:-greeting}
+      ASYNCAPI_PATH: ${ASYNCAPI_PATH:-asyncapi.yaml}
+
+  publisher:
+    image: ejemplo-async-api-app:${IMAGE_TAG:-dev}
+    build:
+      context: .
+    init: true
+    restart: "no"
+    # No arranca con `docker compose up`; se lanza con:
+    #   docker compose run --rm publisher
+    profiles: ["tools"]
+    command: ["node", "dist/publisher.js"]
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+    environment:
+      MQTT_URL: mqtt://mosquitto:1883
+      MQTT_QOS: ${MQTT_QOS:-1}
+      MQTT_CLIENT_ID_PREFIX: ${MQTT_CLIENT_ID_PREFIX:-greeting}
+      ASYNCAPI_PATH: ${ASYNCAPI_PATH:-asyncapi.yaml}
+      PUBLISHER_NAME: ${PUBLISHER_NAME:-Ana}
