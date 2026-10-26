@@ -10,11 +10,20 @@ servers:
     host: localhost:1883
     protocol: mqtt
     description: Broker Mosquitto local
+    bindings:
+      mqtt:
+        clientId: greeting-subscriber
+        cleanSession: false
+        bindingVersion: 0.2.0
 
 channels:
   greetings:
     address: greetings/hello
-    description: Canal donde se publican los saludos.
+    description: >-
+      Canal donde se publican los saludos. Con un suscriptor de sesión
+      persistente (cleanSession=false y clientId fijo), Mosquitto encola los
+      mensajes QoS 1/2 mientras el suscriptor está desconectado y los entrega
+      al reconectarse.
     messages:
       greeting:
         $ref: '#/components/messages/Greeting'
@@ -25,6 +34,11 @@ operations:
     channel:
       $ref: '#/channels/greetings'
     summary: Publica un saludo.
+    bindings:
+      mqtt:
+        qos: 1
+        retain: false
+        bindingVersion: 0.2.0
     messages:
       - $ref: '#/channels/greetings/messages/greeting'
 
@@ -33,6 +47,11 @@ operations:
     channel:
       $ref: '#/channels/greetings'
     summary: Recibe saludos.
+    bindings:
+      mqtt:
+        qos: 1
+        retain: false
+        bindingVersion: 0.2.0
     messages:
       - $ref: '#/channels/greetings/messages/greeting'
 

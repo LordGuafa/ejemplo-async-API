@@ -114,7 +114,7 @@ describe("e2e: ejemplo AsyncAPI + MQTT sobre Docker Compose", () => {
       expect(result.code, `publisher falló:\n${result.combined}`).toBe(0);
       await compose.waitForLog(
         "subscriber",
-        'Hola Ana, dice: "¡Hola, mundo!"',
+        'Hola Ana, dice: "Por la gloria del Omnissiah, ¡saludos desde el Zar-Quaesitor!"',
         30_000,
       );
     },

@@ -465,12 +465,15 @@ Así hay **dos niveles de fallo** distintos: JSON mal formado, y JSON bien forma
 
 ### 7.3 `mqtt-client.ts`: fábrica de clientes
 
-`createClient(role)` evita duplicar código entre publicador y suscriptor.
+`buildClientOptions(role, config)` construye las opciones sin conectarse (así se
+prueban en unitarias) y `createClient(role)` evita duplicar código entre
+publicador y suscriptor.
 
 | Opción | Significado |
 |---|---|
-| `clientId` | Identificador único ante el broker. Se arma como prefijo + rol + 8 caracteres de `randomUUID()`. **Dos clientes con el mismo ID se expulsan entre sí.** |
-| `clean: true` | Sesión limpia: el broker no guarda suscripciones ni mensajes pendientes entre conexiones. |
+| `clientId` | Identificador único ante el broker. Con sesión persistente el suscriptor usa uno fijo (`greeting-subscriber`); en el resto de casos se arma como prefijo + rol + 8 caracteres de `randomUUID()`. **Dos clientes con el mismo ID se expulsan entre sí.** |
+| `clean` | `false` para el suscriptor con `MQTT_PERSISTENT_SESSION=true`: el broker conserva su suscripción y encola mensajes. En el resto de casos es `true` (sesión limpia), como antes. |
+| `protocolVersion` / `sessionExpiryInterval` | Si se define `MQTT_SESSION_EXPIRY_SECONDS`, se usa MQTT 5 con esa caducidad de sesión. En MQTT 5 ambos van juntos: sin `sessionExpiryInterval` la sesión expira al desconectarse. |
 | `connectTimeout: 10_000` | Espera máxima de 10 segundos al conectar. El `_` es solo un separador visual. |
 | `reconnectPeriod` | Milisegundos entre reintentos. El suscriptor (proceso de larga vida) reintenta cada 2 s. El publicador usa `0`, que desactiva la reconexión y falla rápido. |
 | `username` / `password` | Credenciales opcionales. |
@@ -646,7 +649,7 @@ pnpm docs:studio
 HTTP exige que ambos extremos estén disponibles a la vez y la comunicación es punto a punto. Con un broker hay desacoplamiento, y es fácil que varios suscriptores reciban el mismo mensaje.
 
 **¿Qué pasa si el suscriptor está apagado cuando se publica?**
-En esta configuración (`clean: true` y un `clientId` aleatorio) **pierde el mensaje**. Para recibir mensajes acumulados se necesita `clean: false`, un `clientId` fijo y QoS 1 o 2.
+Con la configuración por defecto (`MQTT_PERSISTENT_SESSION=true`, `clean: false`, `clientId` fijo y QoS 1) el broker **encola** los mensajes y los entrega al volver. Para que funcione, la suscripción debe haber existido antes y el broker debe tener persistencia activada. Con `MQTT_PERSISTENT_SESSION=false` se mantiene el comportamiento anterior (`clean: true` y `clientId` aleatorio) y el mensaje se pierde.
 
 **¿Por qué usar zod y Ajv a la vez?**
 Ajv valida contra el JSON Schema del contrato, que es un estándar y viene del YAML. Zod valida la configuración interna, definida en TypeScript. Cada uno encaja mejor en su caso.
@@ -670,11 +673,3 @@ Para documentar. Un lector del contrato sabe qué tipo de broker se espera, pero
 El publicador y el suscriptor lo leen al arrancar, así que ambos adoptan el cambio al reiniciarse. Si el cambio rompe la compatibilidad, conviene subir `info.version` y coordinar el despliegue.
 
 ---
-
-## 13. Guion sugerido (unos 10 minutos)
-
-1. **Problema y conceptos** (2 min): pub/sub, broker, MQTT, contrato.
-2. **El contrato** (2 min): muestra `asyncapi.yaml` sección por sección y la documentación HTML o AsyncAPI Studio. Destaca `address`, `operations` y el schema.
-3. **Código** (3 min): `config.ts` (zod), `contract.ts` (Ajv) y los dos clientes.
-4. **Demo en vivo** (2 min): suscriptor, publicador, y luego un mensaje inválido con `mosquitto_pub`.
-5. **Buenas prácticas y cierre** (1 min).

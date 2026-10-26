@@ -6,7 +6,11 @@ services:
       # (los e2e eligen un puerto libre con MQTT_HOST_PORT).
       - "${MQTT_HOST_PORT:-1883}:1883"
     volumes:
-      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      # MOSQUITTO_CONF permite a los e2e usar una configuración alternativa
+      # (por ejemplo, con un max_queued_messages bajo) sin tocar la principal.
+      - ${MOSQUITTO_CONF:-./mosquitto/mosquitto.conf}:/mosquitto/config/mosquitto.conf:ro
+      # La persistencia de sesiones y mensajes vive aquí y sobrevive a reinicios.
+      - mosquitto-data:/mosquitto/data
     healthcheck:
       # Se usa `sh -c` para que el shell del contenedor expanda $SYS.
       # En Compose `$$` se traduce a un `$` literal que el shell ya sí expande.
@@ -26,6 +30,9 @@ services:
     # lleguen al proceso de Node y el cierre sea ordenado.
     init: true
     restart: unless-stopped
+    # No escalar: con un clientId fijo, dos réplicas se expulsan entre sí.
+    deploy:
+      replicas: 1
     depends_on:
       mosquitto:
         condition: service_healthy
@@ -34,6 +41,9 @@ services:
       MQTT_URL: mqtt://mosquitto:1883
       MQTT_QOS: ${MQTT_QOS:-1}
       MQTT_CLIENT_ID_PREFIX: ${MQTT_CLIENT_ID_PREFIX:-greeting}
+      MQTT_PERSISTENT_SESSION: ${MQTT_PERSISTENT_SESSION:-true}
+      MQTT_SUBSCRIBER_CLIENT_ID: ${MQTT_SUBSCRIBER_CLIENT_ID:-greeting-subscriber}
+      MQTT_SESSION_EXPIRY_SECONDS: ${MQTT_SESSION_EXPIRY_SECONDS:-}
       ASYNCAPI_PATH: ${ASYNCAPI_PATH:-asyncapi.yaml}
 
   publisher:
@@ -55,3 +65,6 @@ services:
       MQTT_CLIENT_ID_PREFIX: ${MQTT_CLIENT_ID_PREFIX:-greeting}
       ASYNCAPI_PATH: ${ASYNCAPI_PATH:-asyncapi.yaml}
       PUBLISHER_NAME: ${PUBLISHER_NAME:-Ana}
+
+volumes:
+  mosquitto-data:
