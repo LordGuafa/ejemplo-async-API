@@ -1,6 +1,7 @@
 # ejemplo-async-api
 
 ## Descripción
+ [Click aquí para ver las diapositivas](https://www.canva.com/design/DAHY-SEEuRs/ssUe-j5lF2QpMhRZqxjkJg/edit)
 
 `ejemplo-async-api` es un proyecto de ejemplo que demuestra cómo construir
 mensajería asíncrona sobre **MQTT** con **Node.js + TypeScript**, usando un

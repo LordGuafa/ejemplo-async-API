@@ -2,6 +2,8 @@
 
 Explicación completa del programa: qué hace, cómo está organizado, qué hace cada archivo, cada método de las librerías y cómo está estructurado el contrato `asyncapi.yaml`.
 
+
+
 ---
 
 ## Índice
